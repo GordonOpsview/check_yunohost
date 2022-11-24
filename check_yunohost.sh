@@ -60,7 +60,7 @@ function category () {
 
 SHOW=$(mktemp /tmp/XXXXXX)
 sudo yunohost diagnosis show --full > $SHOW
-# SHOW="show.yml"
+# SHOW="show_full.yml"
 
 LAST_DIAGNOSIS=$(( ($(date +%s) - $(cat $SHOW | grep timestamp | tail -n1 | grep -o '[0-9]*') )/3600 ))
 
@@ -70,7 +70,7 @@ ERRORS=$(cat $SHOW | category "${1}" | grep -c "^ *status: ERROR")
 
 CHECK_TYPE='category'
 
-while [[ $# -gt 0 ]]; do
+while [[ $# -gt 1 ]]; do
   case "${1}" in
     -h)
       help
