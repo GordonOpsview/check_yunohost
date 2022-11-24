@@ -31,16 +31,16 @@ function help () {
       Only applicable to 'last_diagnosis'.
     
     Category can be one of the following:
-      "Base system"
-      "Internet connectivity"
-      "DNS records"
-      "Ports exposure"
-      "Web"
-      "Email"
-      "Services status check"
-      "System resources"
-      "System configurations"
-      "Applications"
+      "base system"
+      "internet connectivity"
+      "dns records"
+      "ports exposure"
+      "web"
+      "email"
+      "services status check"
+      "system resources"
+      "system configurations"
+      "applications"
 
 EOF
 }
@@ -62,22 +62,23 @@ SHOW=$(mktemp /tmp/XXXXXX)
 sudo yunohost diagnosis show --full > $SHOW
 # SHOW="show_full.yml"
 
-LAST_DIAGNOSIS=$(( ($(date +%s) - $(cat $SHOW | grep timestamp | tail -n1 | grep -o '[0-9]*') )/3600 ))
+CHECK_TYPE='na'
+CATEGORY=''
 
-OKS=$(cat $SHOW | category "${1}" | grep -Ec "^ *status: (SUCCESS|INFO)")
-WARNINGS=$(cat $SHOW | category "${1}" | grep -c "^ *status: WARNING")
-ERRORS=$(cat $SHOW | category "${1}" | grep -c "^ *status: ERROR")
-
-CHECK_TYPE='category'
-
-while [[ $# -gt 1 ]]; do
-  case "${1}" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     -h)
       help
       exit
     ;;
-    last_diagnosis)
-      CHECK_TYPE='last_diagnosis'
+    -a)
+      shift
+      if [[ "$1" == 'last_diagnosis' ]]; then
+        CHECK_TYPE='last_diagnosis'
+      else
+        CHECK_TYPE='category'
+        CATEGORY="$1"
+      fi
     ;;
     -w)
       shift
@@ -93,13 +94,16 @@ done
 
 case "$CHECK_TYPE" in
   category)
+    OKS=$(cat $SHOW | category "$CATEGORY" | grep -Ec "^ *status: (SUCCESS|INFO)")
+    WARNINGS=$(cat $SHOW | category "$CATEGORY" | grep -c "^ *status: WARNING")
+    ERRORS=$(cat $SHOW | category "$CATEGORY" | grep -c "^ *status: ERROR")
     if [[ $ERRORS -gt 0 ]]; then
       CHECK_STATE=$STATE_CRITICAL
-      cat $SHOW | category "${1}" | grep -A1 "^ *status: ERROR" | grep '^ *summary: ' | sed 's/^ *summary: /ERROR: /'
-      cat $SHOW | category "${1}" | grep -A1 "^ *status: WARNING" | grep '^ *summary: ' | sed 's/^ *summary: /WARNING: /'
+      cat $SHOW | category "$CATEGORY" | grep -A1 "^ *status: ERROR" | grep '^ *summary: ' | sed 's/^ *summary: /ERROR: /'
+      cat $SHOW | category "$CATEGORY" | grep -A1 "^ *status: WARNING" | grep '^ *summary: ' | sed 's/^ *summary: /WARNING: /'
     elif [[ $WARNINGS -gt 0 ]]; then
       CHECK_STATE=$STATE_WARNING
-      cat $SHOW | category "${1}" | grep -A1 "^ *status: WARNING" | grep '^ *summary: ' | sed 's/^ *summary: /WARNING: /'
+      cat $SHOW | category "$CATEGORY" | grep -A1 "^ *status: WARNING" | grep '^ *summary: ' | sed 's/^ *summary: /WARNING: /'
     elif [[ $OKS -eq 0 ]]; then
       CHECK_STATE=$STATE_UNKNOWN
       echo -e "UNKNOWN: Could not get results from 'yunohost diagnosis show'"
@@ -107,8 +111,10 @@ case "$CHECK_TYPE" in
       CHECK_STATE=$STATE_OK
       echo "OK: All diagnostics return SUCCESS"
     fi
+    echo -e "|'OK'=$OKS 'WARNING'=$WARNINGS 'ERROR'=$ERRORS" # The perfdata
   ;;
   last_diagnosis)
+    LAST_DIAGNOSIS=$(( ($(date +%s) - $(cat $SHOW | grep timestamp | tail -n1 | grep -o '[0-9]*') )/3600 ))
     if [[ $LAST_DIAGNOSIS -gt $LAST_DIAGNOSIS_CRIT ]]; then
       CHECK_STATE=$STATE_CRITICAL
       echo "CRITICAL: Diagnosis results are more than $LAST_DIAGNOSIS_CRIT hours old."
@@ -119,10 +125,14 @@ case "$CHECK_TYPE" in
       CHECK_STATE=$STATE_OK
       echo "OK: Diagnosis results are less than $LAST_DIAGNOSIS_WARN hours old."
     fi
+    echo -e "|'Last_Diagnosis'=${LAST_DIAGNOSIS}h" # The perfdata
+  ;;
+  na)
+    CHECK_STATE=$STATE_UNKNOWN
+    echo -e "UNKNOWN: Incorrect parameters. See help for details.'"
   ;;
 esac
 
-echo -e "|'OK'=$OKS 'WARNING'=$WARNINGS 'ERROR'=$ERRORS 'Last_Diagnosis'=${LAST_DIAGNOSIS}h" # The perfdata
 
 rm $SHOW
 
