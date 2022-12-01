@@ -31,16 +31,16 @@ function help () {
       Only applicable to 'last_diagnosis'.
     
     Category can be one of the following:
-      "Base System"
-      "Internet Connectivity"
-      "dns records"
-      "Ports Exposure"
-      "Web"
-      "Email"
-      "Services Status Check"
-      "System Resources"
-      "System Configurations"
-      "Applications"
+      base_system
+      internet_connectivity
+      dns_records
+      ports_exposure
+      web
+      email
+      services_status_check
+      system_resources
+      system_configurations
+      applications
 
 EOF
 }
@@ -48,10 +48,8 @@ EOF
 function category () {
   while IFS= read line; do
     if [[ $(echo "$line" | grep -c "^    description: ") -gt 0 ]]; then
-      currentcategory="$(echo "${line}" | sed 's/^    description: //')"
-      # currentcategory="${line//^    description: /}"
+      currentcategory="$(echo "${line}" | sed 's/^    description: //; s/_/ /g')"
     fi
-    # echo "==${currentcategory}==${line}=="
     if [[ "${currentcategory,,}" == "${1,,}" || "${1,,}" == 'all' ]]; then
       echo "$line"
     fi
@@ -60,17 +58,13 @@ function category () {
 
 SHOW=$(mktemp /tmp/XXXXXX)
 sudo yunohost diagnosis show --full > $SHOW
-# SHOW="show_full.yml"
 
 CHECK_TYPE='na'
 CATEGORY=''
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h)
-      help
-      exit
-    ;;
+    -h) help; exit;;
     -a)
       shift
       if [[ "$1" == 'last_diagnosis' ]]; then
@@ -80,14 +74,8 @@ while [[ $# -gt 0 ]]; do
         CATEGORY="$1"
       fi
     ;;
-    -w)
-      shift
-      LAST_DIAGNOSIS_WARN="$1"
-    ;;
-    -c)
-      shift
-      LAST_DIAGNOSIS_CRIT="$1"
-    ;;
+    -w) shift; LAST_DIAGNOSIS_WARN="$1";;
+    -c) shift; LAST_DIAGNOSIS_CRIT="$1";;
  esac
  shift
 done
