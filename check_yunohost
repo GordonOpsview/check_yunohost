@@ -31,16 +31,16 @@ function help () {
       Only applicable to 'last_diagnosis'.
     
     Category can be one of the following:
-      "base system"
-      "internet connectivity"
+      "Base System"
+      "Internet Connectivity"
       "dns records"
-      "ports exposure"
-      "web"
-      "email"
-      "services status check"
-      "system resources"
-      "system configurations"
-      "applications"
+      "Ports Exposure"
+      "Web"
+      "Email"
+      "Services Status Check"
+      "System Resources"
+      "System Configurations"
+      "Applications"
 
 EOF
 }
